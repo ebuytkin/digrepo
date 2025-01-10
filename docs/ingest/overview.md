@@ -15,7 +15,9 @@ The following pages describe the ingest processes for each workflow that feeds c
 Each page contains the following information.
 
 ## Package Requirements
+
 In order to create scalable, sustainable workflows, the output of every acquisition or digitization program must have document packaging requirements, for aspects such as:
+
 * encodings
 * file formats
 * file names
@@ -31,11 +33,7 @@ NYPL Digital Preservation is responsible for defining this model and how it adap
 
 Each ingest page contains a diagram of content type's data model and an example, including any optional files that may be added at a later date.
 
-## Process
-The ingest process converts received packages into a structure that meets the expected data model. This process may require:
-* moving data to staging storage, hot folders, or other storage devices
-* changing file names, folder names, or other aspects of the package
-* validating the received and/or converted packages
-* confirmation of completed ingest
+## Process Troubleshooting
 
-Each ingest page contains a step-by-step workflow of the process.
+While NYPL produces packages with a high-degree of consistency, small deviations from expectations can cause issues with ingest.
+Each workstream contains a list of common issues and approved approaches for remediation.

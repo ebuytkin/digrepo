@@ -6,36 +6,10 @@ parent: Born-Digital Archives
 grand_parent: Ingest
 ---
 
-# Processed Archives
-
-{: .no_toc }
-&nbsp;
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
-
-## Processed Archives: Finding Aid Component packages from Forensic Toolkit
-
-Processed Archives packages are packages of files created by the Archival Processing Unit using either Forensic Toolkit (FTK) or a file manager.
-Subsequently, they are exported by the Digital Archives team.
-They are also known as Finding Aid Component (FA component) packages. More information on the Processing
-steps can be found on [Digital Archives documentation website](https://nypl.github.io/digarch/staging/processing.html).
-The following diagram shows how this type of package may look like.
-
-![alt text]({{site.baseurl}}/assets/img/DA_package_example_FA_Component_FTK.svg "Diagram showing the file and folder structure of an
-Example Package of Finding Aid Component from FTK")
-
-The top-level folder should be named after the finding aid component ID, aka the Electronic Records Identifier,
-e.g. M1234_ER_0001. This top-level folder should also include a "metadata" and an "objects" folder.
-Within the "metadata" folder, there should be a CSV file, named with the same finding aid component ID.
-Within the "objects" folder, it should have one or more files.
-
 ## Data Model
 
 Born-Digital Archives Data Model is created to accommodate a wide range of content collected by the NYPL
-[Digital Archives program](https://nypl.github.io/digarch/). It is designed to be adaptable to legacy collections as well as Digital
-Archives' future acquisitions.
+[Digital Archives program](https://nypl.github.io/digarch/).
 
 ### Data Model Description
 
@@ -43,92 +17,96 @@ The following data model describes how a FA component package will be structured
 into the digital repository software, Preservica.
 
 Each component forms a Structural Object (SO), named as "DI/EM/ER Container", which can be understood as a folder. DI stands for Digital Image;
-EM stands for Email; and ER stands for Electronic Record. DI/EM/ER Container must have one metadata SO, named "(original folder title)_metadata",
- and one contents SO, "(original folder title)_contents". Within the metadata SO, there may not have any file, or it may have metadata file(s).
- Within the contents SO, there can be Information Object(s) (IO), also known as asset(s), and/or file and folder hierarchy, depending on the original
- content structure.
+EM stands for Email; and ER stands for Electronic Record. DI/EM/ER Container must have one metadata SO, named "(original folder title)_metadata", and one contents SO, "(original folder title)_contents". Within the metadata SO, there may not have any file, or it may have metadata file(s).
+Within the contents SO, there can be Information Object(s) (IO), also known as asset(s), and/or file and folder hierarchy, depending on the original content structure.
 
 ![alt text]({{site.baseurl}}/assets/img/svg_data_model_born_digital_archives.svg "Diagram using the Unified Modeling Language showing the Data Model of
 the Born-Digital Archives, including the data classification and its relationships, folder names, metadata fragments, security tags")
 
-## Process
+### Notes on Ingest
 
-The Born-Digital Archives Ingest instructions document how Digital Preservation (DP) staff move
-FA component packages from temporary storage locations to the Library’s digital
-repository hosted on Preservica.
+#### Incorrect Folder Names
 
-### Step-by-step ingest instructions
+The package folder name should conform to the pattern
+`M[0-9]+_(ER|DI|EM)_[0-9]+`.
+If a folder name deviates from this pattern:
 
-1. Locate packages
+1. Rename the folder as appropriate, e.g. `M1234_ER1` become `M1234_ER_1`
+2. Review with the Digital
+Archives program if the solution is unclear
 
-    1. Choose a collection to work with
-    2. Create a Trello ticket to log the work
+#### Incorrect metadata files
 
-2. Upload the collection to the source folder with rsync
+The conventions for processed metadata files has varied over time.
+If a file does not meet the expectation of being a CSV exported from FTK:
+
+1. Review the metadata file and determine whether the file is necessary.
+2. Exports from reporting tools like DROID can be deleted.
+3. Non-standard extensions used for the FTK export should be updated to csv.
+
+### Filename encoding issues
+
+Filenames may include characters with unclear or unusable renderings. Two common
+common sources of these issues are
+[PUA encoded characters](https://en.wikipedia.org/wiki/Private_Use_Areas) and control
+characters such as ASCII [BEL](https://en.wikipedia.org/wiki/Bell_character).
+
+If a filename has an character encoding issue:
+
+1. View the underlying bytes for the filename
 
     ```sh
-    rsync -arP /source/folder/* DA_Source/folder
+    ls -1 path/digital_preservation.docx | xxd
     ```
+2. Map the bytes back to a Unicode codepoint using a conversion tool, e.g. `\xEF \x80 \xA1` is `U+F021`
+3. Convert the character to an acceptable version.
+    * Control characters can be converted to visual representations, such as `\x7f` to `U+2421`
+    * PUA characters can be converted to their original character if they were part of a PUA conversion block.
+    * Characters may need to be deleted if they are unmappable, such as the `U+F8FF`
 
-    Argument explanation:
-    * a is archive mode
-    * r is recursive
-    * P is progress
+### Filenames with non-XML compatible characters
 
-3. Validate and update packages
+Preservica uses XML to store and transact metadata.
+In XML files, the characters `&`, `<`, `>`, `"`, and `'` must be escaped if used as a value.
+Any filename containing these characters must be escaped within the XML.
+The packaging script does this escaping, but it may occasionally fail on complex cases.
 
-    Normally, a linter is a static program that catches errors, bugs and flags potential problems
-    in the source code. In our context, [lint_er.py](https://github.com/NYPL/prsv-tools/blob/main/bin/lint_er.py)
-    is a Python script that confirms each Electronic Record (ER) package conforms to the structure
-    expected by the packaging and ingest processes.
+If the packaging script has issues with escaping the character correctly:
 
-    1. Log in to a virtual machine (VM)
-    2. Run the linter on all of the packages from the collection.
+1. Find the filename within the package's XML files.
+2. Use an XML linter to determine the correct escaping.
+3. Update the XML files.
 
-        ```sh
-        python3 lint_er.py -... /source/digarch/path/to/collection ...
-        ```
+### Virus detected in the file
 
-    3. After the linting process, go through the log file
-       1. Fix each package that has error(s) individually
-       2. If a repair can be carried out, do so
-       3. If further help is needed, contact other Digital Preservation or Digital Archives staff
-       4. Document common issues found and what we perform on them
-    4. Continue linting the packages until all packages pass
+Preservica scans for computer viruses with ClamAV before ingesting the package.
+Virus detection causes the ingest workflow to abort. However, not all viruses are dangerous, especially within modern computing enviroments.
+For example, macro viruses were very common in late 90s Microsoft Office files.
+These macros are no longer executed in modern versions of Office, and even in emulated environments, their effects are contained to annoyances instead of serious damages.
 
-4. Repackage and ingest
+If a virus is detected in a package:
 
-    Packages that conform to the data model structure are ready to be ingested into Preservica.
-    First, they must be repackaged according to Preservica's expectations.
+1. Scan the file with ClamAV and other malware scanners to identify the issue. Malware can have different names depending on the scanning software, so it's most useful to collect all the names possible.
+2. Research the malware and determine its effects.
+3. If there is a risk, quarantine the entire package and discuss with Digital Presevation team.
+4. If there is no risk, adjust the Preservica workflow to allow the ingest temporarily.
+   1. Make sure no ingest workflows are active or being added.
+   2. On the Manage page for Ingest, select "Workflow Error Configuration" for the workflow context
+   3. Change the action for "The Virus Check step found a virus in the package" from  `Abort workflow` to `Continue workflow`
+   4.  Resubmit the aborted package via the Ingest Monitor.
+   5.  After the package is ingested, change the action back to `Abort Workflow`
 
-    1. Log in to a VM
-    2. Switch user to preservica
+##### Example
 
-        ```sh
-        su preservica
-        ```
+In one collection, a file was flagged as containing a trojan named "Win.Trojan.Cap-1" in ClamAV's virus registry.
+After some research using the Internet Archive, we found that this computer virus, "CAP", was most likely a Microsoft Word Macro virus.
+[This Microsoft Security Intelligence page](https://www.microsoft.com/en-us/wdsi/threats/malware-encyclopedia-description?name=Virus%3AWM%2FCap.A), [this Internet Archive capture](https://web.archive.org/web/20130729073004/http://vxheaven.org/29a/29a-2/29a-2.5_6), [the Virus Encyclopedia](http://virus.wikidot.com/cap) and [F-Secure](https://www.f-secure.com/v-descs/cap.shtml) give us information most relevant to this virus.
 
-    3. Change directory to `DA_Scripts`, which has a pyenv environment for Python version control
-    4. Run the packaging script
+In this case, we determined this to be a low-risk file.
 
-        ```sh
-        python3 DigArch_NYPL_Uploader.py
-        ```
+1. The specific variant in the files was a malformed one that did not execute anything.
+2. Over the years, Microsoft has done many interventions about these viruses. One change from 2022 is that [macros from the internet are blocked by default in Microsoft office](https://learn.microsoft.com/en-gb/DeployOffice/security/internet-macros-blocked).
+3. Microsoft also added more warnings before the use can enable the macro (see [25 years on, Microsoft makes another stab at stopping macro malware](https://grahamcluley.com/microsoft-stab-macro-viruses/)).
+4. On top of the intervention from Microsoft, NYPL's processes for accessing these Microsoft Word document outside of emulated containers is to create PDF surrogates that cannot contain macros.
 
-    5. Follow the instructions to create pre-ingest containers for all packages
-       1. Select `1` to ingest content to PRODUCTION tenant or select `2` to ingest content to TEST tenant
-       2. Clear the process list? Choose `N`
-       3. Select the process you would like to run. Select `1` to Create New Container
-       4. Select the workflow type. Enter `1` for DigArch
-
-    6. After all containers are created, ingest all packages to the instance of choosing
-       1. Select `1` to ingest content to PRODUCTION tenant or select `2` to ingest content to TEST tenant
-       2. Clear the process list? Choose `N`
-       3. Select the process you would like to run. Select `2` to Ingest Container
-       4. Enter `ALL` to upload all packages, unless for other purposes, specify which container to ingest
-
-    7. Monitor the ingest progress on the Preservica user interface
-
-### Ingest confirmation
-
-Confirm packages are ingested correctly on the Preservica website.
+With these considerations, we made the decisions to ingest the files.

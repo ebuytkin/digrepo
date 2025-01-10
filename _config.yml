@@ -15,3 +15,8 @@ heading_anchors: true
 
 ga_tracking: G-2WRB0WJDX7
 ga_tracking_anonymize_ip: true
+
+callouts:
+  development:
+    title: In Development
+    color: yellow
