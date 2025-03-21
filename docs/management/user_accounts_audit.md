@@ -4,7 +4,6 @@ title: User Accounts Audit
 parent: Management
 nav_order: 1
 ---
-# User Accounts Audit
 
 Digital Preservation (DP) Program performs seasonal digital repository user accounts audit
 for the software, Preservica. User accounts for the digital repository are created in two
@@ -50,4 +49,4 @@ on each individual machine.
     sudo userdel username
     ```
 
-6.  Create a record for all VM individual and group accounts for this VM and store the file in digital storage
+6. Create a record for all VM individual and group accounts for this VM and store the file in digital storage
