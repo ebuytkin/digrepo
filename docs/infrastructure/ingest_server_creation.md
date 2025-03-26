@@ -1,35 +1,30 @@
 ---
 layout: page
-title: Virtual Machine Management
-parent: Ingest
+title: Ingest Server Creation
+parent: Ingest Server Management
 nav_order: 1
 ---
 
-Ingests should be run from dedicated virtual machines (VMs) to provide optimal bandwidth for file transfers and uploads.
-VMs might be dedicated to a specific kind of ingest, such as born-digital archives or digitized audio and moving image.
-Additional VMs may be necessary to paralellize the workflow and increase bandwidth utilization or to support a new ingest process.
-All VMs are managed by the Information Technology Group (ITG) and should be configured the same when possible.
-
 ## Create a New Virtual Machine
 
-1. File a Jira Ticket with ITG to create a new virtual machine.
+1. File a Jira Ticket with ITG to create a new ingest server.
 Include the following:
-    * required processor cores, 4-16
+    * required processor cores, 4+
     * required RAM, 16+ GB
-    * required working storage, 2+ TB if possible
-    * required mounts of other storage clusters, such as Isilon or workgroup storage
+    * required working storage, at least 500 GB to account for large packages
+    * required mounts of other storage systems
     * `sudo` privileges for your account
     * a list of users to create
     * a list of software to install (screen, tmux, nano, python3, python3-pip, git)
-3. Confirm that the VM meets your needs.
+2. Confirm that the server meets your needs.
    1. Check connectivity from both the office hardwired connections and wireless VPN connections.
    2. Check your account's sudo privileges, `sudo -v`.
    3. Check all software is installed.
    4. Check all user accounts were created, `ls /home`.
-4. Setup additional users, install software, and mounts if required.
-5. Contact users to test their connections.
-6. Add the VM to the Keeper list of workstations.
-7. Close the ticket with ITG.
+3. Setup additional users, install software, and mounts if required.
+4. Contact users to test their connections.
+5. Add the server to the Keeper list of workstations.
+6. Close the ticket with ITG.
 
 ## User management
 
@@ -38,14 +33,18 @@ Include the following:
 1. Create a new user account
 
    ```sh
-   sudo useradd <username> -m -p <pw> -s /bin/bash -G ingest
+   sudo useradd <username> -m -s /bin/bash
    ```
 
    * `<username>` set the username for the account
-   * `-p <pw>` set a temporary password of your choosing
    * `-m` create a home directory
    * `-s /bin/bash` set shell
-2. Send the login information to the user.
+2. Set a temporary password
+
+   ```sh
+   sudo passwd <username>
+   ```
+3. Send the login information to the user.
 Ask them to test the connection and also change the password.
 
 ### Delete user accounts
@@ -62,7 +61,7 @@ Ask them to test the connection and also change the password.
 
 ## Install software
 
-Most VMs require the same software available either from `apt-get` or `pip`
+Most ingest servers require the same software available either from `apt-get` or `pip`
 
 ```sh
 sudo apt-get screen tmux nano
@@ -70,7 +69,7 @@ sudo apt-get install python3 python3-pip git
 sudo pip3 install --system lxml boto3
 ```
 
-VMs also require the custom Python packaging scripts.
+Ingest servers also require the custom Python packaging scripts.
 Instructions are being investigated to install these as system-wide scripts.
 In the meantime, clone the repository to your home folder and use that version.
 
@@ -86,11 +85,10 @@ python3 ~/prsv-tools/path/to/script.py
 
 Copy the `fstab` from an existing server and modify as needed. Most likely, only the ingest source mounts will need editing.
 
-1. Create a directory for mounting and change its ownership to the ingest group.
+1. Create a directory for mounting.
 
     ```sh
     sudo mkdir /path/to/mountpoint
-    chmod -R ingest /path/to/mountpoint
     ```
 
 2. Update the file system table file with the location and characteristics of the storage to mount. Use existing entries in the file as models.
@@ -142,4 +140,3 @@ Copy the `fstab` from an existing server and modify as needed. Most likely, only
    ls /path/to/mountpoint
    rmdir /path/to/mountpoint
    ```
-
