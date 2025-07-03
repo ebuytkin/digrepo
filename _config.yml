@@ -20,3 +20,6 @@ callouts:
   development:
     title: In Development
     color: yellow
+  note: 
+    title: Note
+    color: purple

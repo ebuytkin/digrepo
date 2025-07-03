@@ -1,0 +1,37 @@
+---
+layout: page
+title: Weekly Metadata Reporting Workflow
+nav_order: 1
+parent: Reporting
+---
+
+# Workflow for weekly reporting of Preservica ingests
+
+This workflow details the weekly process for delivering metadata reports that can be uploaded to SPEC. For more information on the reporting workflow, please see the process [Metadata Reporting Workflow]().
+
+## Process
+
+1. On Monday of each week, run export_metada_only for the previous Monday to Sunday. 
+
+    For example, on 2025-04-07, run the report with the start date of 2025-03-31 (Monday) and end date of 2025-04-06 (Sunday):
+    ```sh
+    poetry run export_metadata_only --credentials creds --ami_start_date 2025-03-31 --ami_end_date 2025-04-06
+    ```
+
+2. Run `--ami_retry` for any failed exports. 
++ Troubleshoot export if package fails three or more times. 
+
+<!--(comfirm threshold for # of times to retry?)-->
+
+3. Continue reporting workflow as documented. 
+
+5. Submit the final compiled report for (renamed with appropriate date range) for upload to SPEC. 
+    > e.g., `AMI_combined_report_2025-03-31_2025-04-06.csv`
+    
+6. Delete all unpacked exports, keeping the compiled report only. This will ensure records that have already been compiled do not end up in future weeks' reports. 
+
+7. Run `reports_to_db.py` to record package IDs and workflow IDs to a local database, `recent_reports`. 
+
+
+
+
