@@ -39,10 +39,7 @@ The following repair processes are under development.
 ## Parts in Media Files
 ## Uncompressed Media Files
 ## Invalid Bag Strucutre
-* includes unbagged content, issues with the tags folder, invalid subfolder types
 ## Streams in Media Files
 ## Quick Fixes / One-Offs
-* Empty folders, 0-byte files, unexpected files
 
 # Post-Repair Process
-* re-lint and repeat repairs as needed.
