@@ -1,81 +1,55 @@
 ---
 layout: page
-title: General Ingest Process
+title: General Ingest Processes
 parent: Ingest
-nav_order: 1
+nav_order: 
 ---
-## Ingest Process
-This document describes the general ingest process for Preservica.
-That process is based on the current packaging specifications for each workstream.
-Differences for each workstream are documented on their respective page.
-Additional remediation is needed to update legacy projects to current packaging specifications before beginning ingest.
-Those steps are documented on their respective pages.
+# Preservica Ingest Processes
 
-### Locate packages
-1. Choose a batch of packages to work with. One batch consists of a folder that contains packages of digitized objects, electronic records, or other units of work. A batch should already be located on network storage.
-2. Create a Trello ticket to log the work. Name the ticket based on the batch. For example, `326` for a folder of AMI with IDs 326xxx, `M18600` for the electronic records of collection `M18600`, or `NYPL23245-Audio` for the Audio folder from the hard drive labeled NYPL23245.
+This document outlines the standard ingest workflows for ingesting materials into Preservica, including the general pipeline and specific adjustments for AMI Preservation (AMIP) and external drive transfers. 
 
-### Validate readiness for ingest
-1. Lint the batch for any inconsistencies or missing files using the appropriate linter, e.g.
-    ```sh
-    poetry run move_ami_linted_issues --directory /path/to/batch --destination /path/to/_repairs
-    ```
-2. Problematic bags will be sorted into folders within the destination path based on the first condition failed while linting. For more information on the repair process, see [Bag Repair Tools]().
-3. Update the Trello card once the batch is ready for packaging.
+## 1. Locating & Preparing Packages
+* Choose a batch of packages located on network storage to work with.
+* Create a Trello ticket and name it based on the specific batch.
+* Be sure to include the batch source location labels on the Trello card to make later validation easier.
 
-### Queue for ingest
-1. Run the batch through the packager for the workstream.
-2. Monitor the packaging process.
-    * The packaging process will halt, if the machine does not have enough storage space to process it.
-    Move these packages to packaging run on another machine, and resume the batch.
-3. Monitor the upload process. Packages are moved to the ingest staging area after packaging.
-4. Update the Trello card once the batch is packaged.
-5. Run a new batch when one packaging process completes.
-The ingest orchestrator should have at least 3 days worth of completed packages ready at all times.
+## 2. External Drive Transfers
+* External drives with json bags typically contain separated directories for different media types (e.g. Audio, Film, Data). These directories can be processed independently on different servers if space limitations require it.
+* Check the size of all packages to ensure they are copied to the appropriate staging server.
+* Using `rsync -aP`, copy the drive contents to the server. Exceptionally large packages should be directed to a mount point capable of accommodating their size during the packaging phase.
 
->{: .note}
->
->Some machines run two packagers simultaneously. The packager `.ini` for these machines has a `PackageSizeMultiplier` variable set to `2` by default. In the event a bag is smaller than the available disc size but is not processing:
->
->1. Pause the other running packager.
->2. Set the `PackageSizeMultiplier` variable to `1`. 
->3. Remove the package ID from the the process list. 
->4. Restart the currently packager without clearning the process list.
->5. Once that package has completed, pause the running packager. 
->6. Reset the `PackageSizeMultiplier` variable to `2`.
->7. Restart the other packager. 
 
-### Monitor ingest
-1. Monitor ingest via the Orchestrator script and the dashboard on the Classic interface.
-2. Adjust the number of simultaneous workflows as needed via the Orchestrator `.ini` file.
-    * Use the maximum number of workflows if no other work is being performed within Preservica.
-    The absolute maximum number of workflows is the total number of threads available on the Job Queue servers.
-    * Reduce the number of workflows if processing capacity is needed for other projects, such as access representation creation.
-3. Note any failed ingests. Examine error message from the sub-process steps on the workflow page.
-    * Repair small problems immediately
-    * If further help is needed, discuss with other Digital Preservation staff
-    * Halt ingest via the Orchestrator `.ini` file if the issue appears to be pervasive.
-    * See the [Deletion and Re-Ingest Workflows]() for more details on resolving failures.
+{: .note }
+The following is for *new* drives received from AMIP only.
+* Use the `copy_to_s3.py` tool using the `--check_and_upload` flag to copy service files from the drive directl to the appropriate AWS bucket/remote source. 
 
-    >{: .note}
-    >
-    >Ingests marked as `Failed` will be caught, recorded and terminated/retried via a google script. This script runs hourly and records the parent and child classic interface workflow links in the assigned spreadsheet. 
-    >
-    >Ingests marked as `Completed w/ Errors` will need to be manually recorded as needed. 
+## 3. Linting & Repairs
+* Run the appropriate linter on the batch to check for packages needing repairs.
+* Problematic or invalid packages will be moved to a repair directory. Depending on the linter used, these packages may be moved automatically or may require manual removal.
+* Quick repairs can be handled immediately or in larger batches. More complex repairs may require consultation with other staff. For more information on repairs, see [Bag Repair Tools]()
+* Update the Trello card once the batch is fully linted and ready for packaging.
 
-4. Follow the [Deletion and Re-Ingest Workflows]() to comfirm sucessful ingests. 
-5. Update the Trello card once the batch is ingested.
+## 4. Queueing & Packaging
+* Run the batch through the appropriate packager.
+* Monitor the packaging process closely. 
+* If the processing machine lacks sufficient storage space, the process will halt. Move these packages to another machine and resume the batch.
+* Monitor the upload process as packages are moved to the Preservica ingest staging area after packaging.
+* Ensure a steady stream of work is available by starting a new batch when one completes.
+* If machines running multiple simultaneous packagers stalls on specific larger packages, temporarily adjust the packager's capacity configuration variables to allow the package through.
+* Update the Trello card once the batch is fully packaged.
 
-### Validate Ingest
-1. Compare the items on network storage to the items ingested to ensure ingest has been attempted on all.
-{: .development }
-The following steps are under development.
-2. Validate the batch with the appropriate validator, e.g.
-    ```sh
-    validate_ami --directory /path/to/batch
-    ```
-3. Review remediation steps in [Deletion and Re-Ingest Workflows]() for any invalid ingests.
-4. Once the batch is valid, delete the source files
-    ```sh
-    delete_source --directory /path/to/batch
-    ```
+## 5. Monitoring Preservica Ingest
+* Monitor the ingest progress via the orchestrator and the Preservica process monitor.
+* Adjust the number of simultaneous workflows via the orchestrator INI file based on available server threads and whether processing capacity is needed for other Preservica-based projects.
+* Note any failed ingests by examining error messages generated during the workflow steps. 
+    - Automated scripts will catch and record complete ingest failures, however, details log messages will need to be pulled manually.
+* Repair minor issues immediately. 
+* Stop the ingest orchestrator if an issue appears to be pervasive.
+
+## 6. Post-Ingest Validation and Cleanup
+* Compare the items on network storage to the items ingested to ensure ingest has been attempted on all packages.
+* Run the validation tool against the source directories to verify ingest was successful. For more information on the validation tool, see [Validation & Deletion](../)
+* Follow the standard re-ingest workflows to correct any failed ingests.
+* For AMIP materials, successfully ingested and validated batches must be uploaded to designated cloud storage using the deep archive storage classes.
+* Once the entire batch is valid and any required cloud uploads are complete, the source files can be deleted.
+* Update the Trello card once the entire batch has been successfully ingested.
